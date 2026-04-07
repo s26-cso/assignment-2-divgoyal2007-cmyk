@@ -17,7 +17,7 @@ make_node:
 
     beq a0,x0,endoffunc
 
-    sd s0,0(a0)         #store val
+    sw s0,0(a0)         #store val
     sd x0,8(a0)         #left pointer=NULL
     sd x0,16(a0)        #right pointer=NULL       
 
@@ -37,7 +37,7 @@ insert:
     mv s1,a1                    #storing  val in s1
 
     beq s0,x0,insert_create     #if root==NULL then we have to call make_node function with value=val
-    ld t0,0(s0)
+    lw t0,0(s0)
     blt s1,t0,insert_left       #if val is less than value of root calling insert left function
 
 
@@ -72,7 +72,7 @@ insert_end:
     ret
 
 get:
-    addi sp,sp,-24
+    addi sp,sp,-32
     sd ra,0(sp)         # storing return address
     sd s0,8(sp)          # storing root pointer      
     sd s1,16(sp)         # storing value to search
@@ -81,7 +81,7 @@ get:
     mv s1,a1        #sotring val in s1
 
     beq s0,x0,get_null       # if root == NULL return NULL
-    ld t0,0(s0)              # loading root->val into t0
+    lw t0,0(s0)              # loading root->val into t0
     blt s1,t0,get_left      # if val < root->val go left
     beq s1,t0,get_found     # if val == root->val return node
 
@@ -109,11 +109,11 @@ get_end:
     ld ra,0(sp)
     ld s0,8(sp)
     ld s1,16(sp)
-    addi sp,sp,24
+    addi sp,sp,32
     ret
 
 getAtMost:
-    addi sp,sp,-24
+    addi sp,sp,-32
     sd ra,0(sp)
     sd s0,8(sp)
     sd s1,16(sp)
@@ -123,7 +123,7 @@ getAtMost:
     li t1,-1        #answer = -1(if no value is found given in the question)
 getAtMost_loop:
     beq s0,x0,getAtMost_completed       # if root == NULL, stop loop
-    ld t0,0(s0)
+    lw t0,0(s0)
     ble t0,s1,getAtMost_updateans       # if node->val <= val update answer
     ld s0,8(s0)     # go to left subtree (values are smaller)
     j getAtMost_loop         # repeat loop
@@ -138,6 +138,6 @@ getAtMost_completed:
     ld ra,0(sp)
     ld s0,8(sp)
     ld s1,16(sp)
-    addi sp,sp,24
+    addi sp,sp,32
     ret
 

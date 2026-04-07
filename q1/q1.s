@@ -1,3 +1,11 @@
+.data
+
+.text
+.globl make_node
+.globl insert
+.globl get
+.globl getAtMost
+
 make_node:
     addi sp,sp,-16
     sd ra,8(sp)

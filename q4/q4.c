@@ -9,8 +9,8 @@ int main(){
     
     char tracker[6]="";
     void *handle=NULL;
-    while(scanf("%s %d %d",op,&num1,&num2)==3){
-        if(strcmp(op,tracker)==0){
+    while(scanf("%5s %d %d",op,&num1,&num2)==3){
+        if(strcmp(op,tracker)!=0){
             if(handle!=NULL){
                 dlclose(handle);
                 handle=NULL;

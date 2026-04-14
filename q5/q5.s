@@ -1,93 +1,108 @@
-.data
-filename:   .asciz "input.txt"      # Just telling the assembler the files name
-yes_str:    .asciz "Yes\n"          # The string we'll print if the file is a palindrome
-no_str:     .asciz "No\n"           # The string we'll print if it is not a palindrome
-buf_left:   .space 1                # A tiny 1-byte memory spot to hold the char from the left side
-buf_right:  .space 1                # Another tiny 1-byte memory spot for the right side char
+.section .rodata
+filename:    .string "input.txt"
+yes_str:     .string "Yes\n"
+no_str:      .string "No\n"
+
+.section .bss
+# We need two tiny 1-byte buffers to hold the characters we're comparing
+buf_left:    .space 1
+buf_right:   .space 1
 
 .text
-.globl main                      # Exposing our starting point for the linker.
+.globl main
 
 main:
-    la a0, filename                 # Load the address of our filename into a0 
-    li a1, 0                        # Set flag to 0, which means "Read Only" mode
-    li a2, 0                        # Mode isn't really needed for just reading, set to 0
-    li a7, 1024                     # System call 1024 is for 'open' in RARS/Venus
-    ecall                           # Hey OS, please open the file for me
-    mv s0, a0                       # Save the file descriptor (our file ticket) into s0 safely
-
-     mv a0, s0                       # Put our file descriptor in a0.
-    li a1, 0                        # Offset is 0 because we just want the very end.
-    li a2, 2                        # 2 means go to the end of the file.
-    li a7, 62                       # System call 62 is 'lseek' (move our reading cursor).
-    ecall                           # Hey OS, jump to the end and tell me where we are!
-    mv s1, a0                       # Save the file size (length) into s1.
-    beqz s1, print_yes              # If the file size is 0, an empty string is technically a palindrome!
-
-    li s2,0                     #s2 is left pointer starting at 0
-    addi s3,s1,-1               #s3 is right pointer starting at n-1
-
-loop:
-    bge s2,s3,print_yes         #if left index becomes greater than right index that means we have checked everything and no mistake has been found so far hence it is a palindrome
-
-    mv a0,s0        #giving the os our file descriptor
-    mv a1,s2        #telling we want to go to the current left index
-    li a2,0
-    li a7,62
+    li a0,-100       #Tells Linux to look in the current folder
+    la a1,filename      #point to input.txt
+    li a2, 0                     # Open for reading only
+    li a3, 0                     # No special mode flags needed
+    li a7, 56                    # System call 56 is 'openat'
     ecall
 
-    mv a0,s0        # File descriptor in a0 for reading
-    la a1,buf_left      # Tell it to put the data into our left buffer
-    li a2,1             # We only want to read exactly 1 byte
-    li a7,63        # System call 63 is read
-    ecall           # Actually collect that buyte from file
+    bltz a0,error_exit      # If the file descriptor in a0 is negative, something went wrong
+    mv s0,a0
 
-    mv a0,s0        #file desciptor in a0
-    mv a1,s3        #telling we want to go to the current right index
-    li a2,0
-    li a7,62
-    ecall       # Move the cursor to the right index.
+    mv a0,s0
+    li a1,0
+    li a2,2            
+    li a7,62        # System call 62 is 'lseek'
+    ecall
+    mv s1,a0        # a0 now holds the total file size. Save it in s1.
 
-    mv a0, s0                       # File descriptor in a0 for reading
-    la a1, buf_right               # Put the data into our 'right' buffer
-    li a2, 1                    # Read exactly 1 byte
-    li a7, 63                    # read system call
-    ecall                          # Grab the byte
+    beqz s1,print_yes       #empty file is size 0 that is a palindrome
 
-    la t0, buf_left                 # Get the memory address of the left buffer
-    lb t1, 0(t0)                    # Load that actual byte (character) into register t1
-    la t0, buf_right              # Get the memory address of the right buffer
-    lb t2, 0(t0)                   # Load that actual byte (character) into register t2
+    li s2,0     #s2 is left pointer startign from 0
+    addi s3,s1,-1   #s3 is the right pointer 
 
-    bne t1,t2,print_no
-    
-    addi s2,s2,1            #move left pointer
-    addi s3,s3,-1           #move right pointer
+loop:
+    bge s2,s3,print_yes #if left pointer has crossed right pointer that means no mistkake has been found that it is a palindrome
+
+    mv a0,s0        
+    mv a1,s2    #current left
+    li a2,0     #Move  to this exact spot from the start
+    li a7,62        #lseek
+    ecall
+
+    mv a0,s0
+    la a1,buf_left      # Place the character into our left buffer
+    li a2,1     #need 1 byte
+    li a7,63        #system call 63 is read
+    ecall
+
+    mv a0, s0
+    mv a1, s3                    # Current right position
+    li a2, 0                     # SEEK_SET: Move cursor to this exact spot
+    li a7, 62                    # lseek
+    ecall
+
+    mv a0,s0
+    la a1,buf_right  #place character into right buffer
+    li a2,1
+    li a7,63        #read
+    ecall
+
+    la t0,buf_left
+    lb t1,0(t0)     #load the actual left char
+    la t0, buf_right
+    lb t2, 0(t0)                 # Load the actual right char into t2
+
+    bne t1,t2,print_no      #if they do not match it is not a palindrome we dont need to check further 
+    addi s2,s2,1        #move the left pointer to left
+    addi s3,s3,-1       #move the right pointer
     j loop
 
 print_yes:
     li a0,1
     la a1,yes_str
-    li a2,4     # The string "Yes\n" is exactly 4 bytes long
-    li a7,64        #system call 64 is write
-    ecall        #print it to screen
+    li a2,4     #length of "Yes\n"
+    li a7,64        #system call for write
+    ecall
     j exit_program
 
 print_no:
-    li a0,1
+     li a0,1
     la a1,no_str
-    li a2,3     # The string "No\n" is exactly 4 bytes long
-    li a7,64        #system call 64 is write
-    ecall       #print it to screen
+    li a2,3    #length of "No\n"
+    li a7,64        #system call for write
+    ecall
+    j exit_program
+
+error_exit:
+    # If the file couldn't open, we just jump to the end
     j exit_program
 
 exit_program:
-    mv a0,s0        #put file descriptor in a0
-    li a7,57        #system call 57 is close
+    mv a0,s0
+    li a7,57        #system csll for close
     ecall
 
     li a0,0
-    li a7,93    #system call 93 is exit
+    li a7,93            #system call for exit
     ecall
+
+
+
+
+
 
 

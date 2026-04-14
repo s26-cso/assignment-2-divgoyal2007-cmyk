@@ -36,7 +36,7 @@ parse:
 
     slli t4, t2, 3      # Multiply argv index by 8
     add t4, s1, t4      # Add offset to argv base address
-    ld a0, 0(t4)        # Load the 8-byte string pointer into a0
+    lw a0, 0(t4)        # Load the 8-byte string pointer into a0
 
     jal ra, atoi_s      # Jump to string-to-integer subroutine
 

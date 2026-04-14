@@ -34,7 +34,7 @@ main:
 parse:
     bge t3, s0, init_res        # If arr index >= n, parsing is done
 
-    slli t4, t2, 3      # Multiply argv index by 8
+    slli t4, t2, 2      # Multiply argv index by 8
     add t4, s1, t4      # Add offset to argv base address
     lw a0, 0(t4)        # Load the 8-byte string pointer into a0
 
